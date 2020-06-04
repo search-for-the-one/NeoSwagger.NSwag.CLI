@@ -1,0 +1,110 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
+using CommandLine;
+using NeoSwagger.NSwag.CLI.Compilers;
+using NeoSwagger.NSwag.CLI.Exceptions;
+using NeoSwagger.NSwag.CLI.Parsers;
+using NeoSwagger.NSwag.CLI.Shells;
+using NeoSwagger.NSwag.CLI.Shells.ConsoleHosts;
+
+namespace NeoSwagger.NSwag.CLI
+{
+    public class CommandLineInterface
+    {
+        public IConsoleHost ConsoleHost { get; set; } = new SystemConsoleHost();
+        
+        private void PrintException(Exception ex)
+        {
+            switch (ex)
+            {
+                case FileNotFoundException fileNotFound:
+                    ConsoleHost.WriteLine($"Error: {fileNotFound.Message} - '{fileNotFound.FileName}'");
+                    break;
+                case ShellException shell:
+                    ConsoleHost.WriteLine($"{shell.Message}");
+                    var exception = shell.InnerException?.InnerException;
+                    if (exception != null)
+                        ConsoleHost.WriteLine(exception.Message);
+                    break;
+                case HttpRequestException request:
+                    ConsoleHost.WriteLine(request.Message);
+                    break;
+                default:
+                    ConsoleHost.WriteLine(ex.ToString());
+                    break;
+            }
+        }
+
+        public void Run(IEnumerable<string> args)
+        {
+            Parser.Default.ParseArguments<Options>(args)
+                .WithParsed(async options =>
+                {
+                    try
+                    {
+                        await Run(options);
+                    }
+                    catch (Exception ex)
+                    {
+                        ConsoleHost.WriteLine();
+                        PrintException(ex);
+                    }
+                })
+                .WithNotParsed(HandleParseError);
+        }
+
+        private void HandleParseError(IEnumerable<Error> errs)
+        {
+            foreach (var err in errs)
+                ConsoleHost.WriteLine(err.ToString());
+        }
+
+        private async Task Run(Options options)
+        {
+            var file = !string.IsNullOrEmpty(options.ScriptFile)
+                ? LoadScriptFile(options.ScriptFile)
+                : null;
+
+            var baseUrl = new Uri(options.SwaggerEndpoint).GetLeftPart(UriPartial.Authority);
+
+            ConsoleHost.Write($"Loading from swagger endpoint '{options.SwaggerEndpoint}'...");
+
+            var commandParser = new CommandParser();
+            var variables = new InMemoryVariables();
+
+            var watch = Stopwatch.StartNew();
+            using var client = new HttpClient {BaseAddress = new Uri(baseUrl)};
+            new CreateAssemblyFromSwagger(new CSharpCompiler(), new NSwagCodeGenerator(options.SwaggerEndpoint), ConsoleHost)
+                .CreateAssembly(out var classes);
+
+            ConsoleHost.WriteLine($" Done ({watch.Elapsed.TotalMilliseconds:N0}ms).");
+            ConsoleHost.WriteLine();
+
+            var commandProcessor = new CommandProcessor(commandParser, variables, classes, client);
+            if (file != null)
+            {
+                ConsoleHost.Write("Running script... ");
+                var consoleHost = options.PrintScriptResponses
+                    ? ConsoleHost
+                    : new NullConsoleHost();
+                await new ScriptedShell(consoleHost, commandParser, variables, commandProcessor, file).Run();
+                ConsoleHost.WriteLine(" Done.");
+                ConsoleHost.WriteLine();
+            }
+
+            if (!options.RunInteractiveShell)
+                await new InteractiveShell(ConsoleHost, commandParser, variables, commandProcessor).Run();
+        }
+
+        private static StreamReader LoadScriptFile(string scriptFile)
+        {
+            return File.Exists(scriptFile)
+                ? File.OpenText(scriptFile)
+                : throw new FileNotFoundException("Script file not found", scriptFile);
+        }
+    }
+}
