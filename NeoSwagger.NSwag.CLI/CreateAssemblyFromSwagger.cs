@@ -31,23 +31,21 @@ namespace NeoSwagger.NSwag.CLI
             this.consoleHost = consoleHost;
         }
 
-        public Assembly CreateAssembly(out ISwaggerClasses classes)
+        public async Task<(Assembly Assembly, ISwaggerClasses Classes)> CreateAssembly()
         {
-            var code = GenerateCodeFromSwagger().Result;
+            var code = await GenerateCodeFromSwagger();
             var asmCacheFile = GetAsmCacheFile(code);
 
             Assembly asm;
             if (File.Exists(asmCacheFile) && (asm = TryLoadFromCache(asmCacheFile)) != null)
             {
-                classes = GetSwaggerClasses(asm);
-                return asm;
+                return (asm, GetSwaggerClasses(asm));
             }
 
             var asmRaw = Compile(code);
             SaveCacheInBackground(asmCacheFile, asmRaw);
             asm = Assembly.Load(asmRaw);
-            classes = GetSwaggerClasses(asm);
-            return asm;
+            return (asm, GetSwaggerClasses(asm));
         }
 
         private static void SaveCacheInBackground(string asmCacheFile, byte[] asmRaw)

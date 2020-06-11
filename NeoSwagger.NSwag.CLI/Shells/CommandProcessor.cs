@@ -53,15 +53,18 @@ namespace NeoSwagger.NSwag.CLI.Shells
             if (method == null)
                 throw new InvalidOperationException($"Service '{service}' does not understand '{verb}'");
 
-            var instance = (dynamic) Activator.CreateInstance(type, client);
+            var instance = Activator.CreateInstance(type, client);
             var result = method.Invoke(instance, await CreateParameterObjects(method.GetParameters(), parameters));
             if (!(result is Task))
                 throw new NotSupportedException($"Expecting method to be async but got return type of '{result.GetType()}'");
 
             try
             {
-                using var response = await result;
-                return await GetResponse(response);
+                var response = await (dynamic) result;
+                using var disposable = response as IDisposable;
+                return disposable != null
+                    ? (Response) await GetResponse(response) 
+                    : throw new NotSupportedException($"Expecting method to have return type of 'IActionResult' but got '{response.GetType()}'");
             }
             catch (Exception ex)
             {
@@ -132,7 +135,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
         private static Response GetResponse(Exception ex)
         {
             var response = (dynamic) ex;
-            var s = new MemoryStream(Encoding.UTF8.GetBytes(response.Response));
+            var s = new MemoryStream(Encoding.UTF8.GetBytes(response.Response)) {Position = 0};
             return new Response(response.StatusCode, response.Headers, s);
         }
 

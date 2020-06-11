@@ -1,9 +1,10 @@
 ﻿using System.Reflection;
+using System.Threading.Tasks;
 
 namespace NeoSwagger.NSwag.CLI
 {
     internal interface ICreateAssemblyFromSwagger
     {
-        Assembly CreateAssembly(out ISwaggerClasses classes);
+        Task<(Assembly Assembly, ISwaggerClasses Classes)> CreateAssembly();
     }
 }

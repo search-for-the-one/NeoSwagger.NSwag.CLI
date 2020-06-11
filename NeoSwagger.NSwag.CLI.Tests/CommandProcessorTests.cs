@@ -18,9 +18,9 @@ namespace NeoSwagger.NSwag.CLI.Tests
     public class CommandProcessorTests
     {
         [Test]
-        public void Help()
+        public async Task Help()
         {
-            var proc = CreateCommandProcessor();
+            var proc = await CreateCommandProcessor();
             var help = proc.GetHelp();
             Assert.IsNotEmpty(help);
             Assert.IsTrue(help.IndexOf("Test", StringComparison.Ordinal) >= 0);
@@ -33,7 +33,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
         [Test]
         public async Task ExecuteString()
         {
-            var proc = CreateCommandProcessor();
+            var proc = await CreateCommandProcessor();
             using (var response = await proc.Execute("Test SignUp test@test.com password"))
             {
                 var parameters = GetResult(response);
@@ -45,7 +45,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
         [Test]
         public async Task ExecuteJson()
         {
-            var proc = CreateCommandProcessor();
+            var proc = await CreateCommandProcessor();
             using (var response = await proc.Execute("Test ChangePasswordNested '{AccessToken:\"123456\", CurrentPassword:\"password\", ProposedPassword:\"new\"}'"))
             {
                 var parameters = GetResult(response);
@@ -63,7 +63,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
             tempFile = tempFile.Replace(Path.DirectorySeparatorChar, '/');
             try
             {
-                var proc = CreateCommandProcessor();
+                var proc = await CreateCommandProcessor();
                 using (var response = await proc.Execute($"Test ChangePasswordNested file://{tempFile}"))
                 {
                     var parameters = GetResult(response);
@@ -87,7 +87,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
             tempFile = tempFile.Replace(Path.DirectorySeparatorChar, '/');
             try
             {
-                var proc = CreateCommandProcessor();
+                var proc = await CreateCommandProcessor();
                 using (var response = await proc.Execute($"Test Create file://{tempFile} name=filename"))
                 {
                     var parameters = GetResult(response);
@@ -104,7 +104,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
         [Test]
         public async Task ExecuteNumbers()
         {
-            var proc = CreateCommandProcessor();
+            var proc = await CreateCommandProcessor();
             using (var response = await proc.Execute("Test UseSomeNumbers 1 2 3 4 5"))
             {
                 var parameters = GetResult(response);
@@ -136,16 +136,16 @@ namespace NeoSwagger.NSwag.CLI.Tests
         }
 
         [Test]
-        public void ExecuteInvalidService()
+        public async Task ExecuteInvalidService()
         {
-            var proc = CreateCommandProcessor();
+            var proc = await CreateCommandProcessor();
             Assert.ThrowsAsync<InvalidOperationException>(async () => await proc.Execute("IDontUnderstandThis foo"));
         }
 
         [Test]
-        public void ExecuteInvalidServiceMethod()
+        public async Task ExecuteInvalidServiceMethod()
         {
-            var proc = CreateCommandProcessor();
+            var proc = await CreateCommandProcessor();
             Assert.ThrowsAsync<InvalidOperationException>(async () => await proc.Execute("Test IDontUnderstandThis"));
         }
 
@@ -155,24 +155,23 @@ namespace NeoSwagger.NSwag.CLI.Tests
             return result.Select(p => Convert.ChangeType(p.Value, p.Type)).ToArray();
         }
 
-        private static CommandProcessor CreateCommandProcessor()
+        private static async Task<CommandProcessor> CreateCommandProcessor()
         {
-            new MockCreateAssemblyFromSwagger().CreateAssembly(out var classes);
+            var (_, classes) = await new MockCreateAssemblyFromSwagger().CreateAssembly();
             return new CommandProcessor(new CommandParser(), new InMemoryVariables(), classes, new HttpClient());
         }
     }
 
     public class MockCreateAssemblyFromSwagger : ICreateAssemblyFromSwagger
     {
-        public Assembly CreateAssembly(out ISwaggerClasses classes)
+        public Task<(Assembly Assembly, ISwaggerClasses Classes)> CreateAssembly()
         {
-            var dic = new SwaggerClasses();
+            var classes = new SwaggerClasses();
             var asm = Assembly.GetExecutingAssembly();
             foreach (var t in asm.GetTypesThatImplement<IWebClient>())
                 if (t.Namespace == typeof(IWebClient).Namespace)
-                    dic.GetOrAdd(t, () => GetClientMethods(t.GetMethods(BindingFlags.Public | BindingFlags.Instance)));
-            classes = dic;
-            return asm;
+                    classes.GetOrAdd(t, () => GetClientMethods(t.GetMethods(BindingFlags.Public | BindingFlags.Instance)));
+            return Task.FromResult((asm, (ISwaggerClasses) classes));
         }
 
         private static IEnumerable<MethodInfo> GetClientMethods(IEnumerable<MethodInfo> methods)

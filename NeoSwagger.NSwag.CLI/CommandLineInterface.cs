@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using CommandLine;
 using NeoSwagger.NSwag.CLI.Compilers;
@@ -42,11 +43,19 @@ namespace NeoSwagger.NSwag.CLI
         public void Run(IEnumerable<string> args)
         {
             Parser.Default.ParseArguments<Options>(args)
-                .WithParsed(async options =>
+                .WithParsed(options =>
                 {
                     try
                     {
-                        await Run(options);
+                        try
+                        {
+                            Run(options).Wait();
+                        }
+                        catch (AggregateException ex)
+                        {
+                            ExceptionDispatchInfo.Capture(ex.InnerException ?? ex).Throw();
+                            throw;
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -78,8 +87,8 @@ namespace NeoSwagger.NSwag.CLI
 
             var watch = Stopwatch.StartNew();
             using var client = new HttpClient {BaseAddress = new Uri(baseUrl)};
-            new CreateAssemblyFromSwagger(new CSharpCompiler(), new NSwagCodeGenerator(options.SwaggerEndpoint), ConsoleHost)
-                .CreateAssembly(out var classes);
+            var (_, classes) = await new CreateAssemblyFromSwagger(new CSharpCompiler(), new NSwagCodeGenerator(options.SwaggerEndpoint), ConsoleHost)
+                .CreateAssembly();
 
             ConsoleHost.WriteLine($" Done ({watch.Elapsed.TotalMilliseconds:N0}ms).");
             ConsoleHost.WriteLine();

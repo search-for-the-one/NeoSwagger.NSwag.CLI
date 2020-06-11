@@ -20,9 +20,9 @@ namespace NeoSwagger.NSwag.CLI.Tests
         private Assembly assembly;
 
         [Test]
-        public void Compilation()
+        public async Task Compilation()
         {
-            var classes = Compile();
+            var classes = await Compile();
             Assert.AreEqual(2, classes.Count);
             CollectionAssert.AreEquivalent(new []{"AuthenticationClient", "UtilityClient"}, classes.Keys.Select(t => t.Name));
         }
@@ -30,7 +30,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
         [Test]
         public async Task Authentication()
         {
-            dynamic authentication = CreateInstance("AuthenticationClient");
+            dynamic authentication = await CreateInstance("AuthenticationClient");
             Assert.AreEqual(200, (await authentication.UseTokenAsync("policy", "token")).StatusCode);
             var token = GetObject((await authentication.GetTokenAsync()).Stream);
             Assert.AreEqual("policy", GetString(token.Scheme));
@@ -42,7 +42,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
         [Test]
         public async Task AddHttpHeader()
         {
-            dynamic utility = CreateInstance("UtilityClient");
+            dynamic utility = await CreateInstance("UtilityClient");
             var result = await utility.AddHttpHeaderAsync("SomeKey", "SomeValue");
             Assert.AreEqual(200, result.StatusCode);
         }
@@ -50,7 +50,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
         [Test]
         public async Task RemoveHttpHeader()
         {
-            dynamic utility = CreateInstance("UtilityClient");
+            dynamic utility = await CreateInstance("UtilityClient");
             var result = await utility.RemoveHttpHeaderAsync("SomeKey", "SomeValue");
             Assert.AreEqual(200, result.StatusCode);
         }
@@ -58,7 +58,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
         [Test]
         public async Task Base64EncodeDecode()
         {
-            dynamic utility = CreateInstance("UtilityClient");
+            dynamic utility = await CreateInstance("UtilityClient");
             var data = GenerateRandomBytes();
             var encoded = await utility.EncodeBase64Async(CreateFileParameter(new MemoryStream(data)));
             var decoded = await utility.DecodeBase64Async(GetString(encoded.Stream));
@@ -68,7 +68,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
         [Test]
         public async Task JsonSelect()
         {
-            dynamic utility = CreateInstance("UtilityClient");
+            dynamic utility = await CreateInstance("UtilityClient");
             var result = await utility.JsonSelectAsync(@"{'Stores':['Lambton Quay','Willis Street']}", "Stores[0]");
             Assert.AreEqual("Lambton Quay", GetString(result.Stream));
         }
@@ -76,7 +76,7 @@ namespace NeoSwagger.NSwag.CLI.Tests
         [Test]
         public async Task InvalidJsonSelect()
         {
-            dynamic utility = CreateInstance("UtilityClient");
+            dynamic utility = await CreateInstance("UtilityClient");
             var result = await utility.JsonSelectAsync(@"{}", "Invalid[0]");
             Assert.AreNotEqual(200, result.StatusCode);
         }
@@ -108,15 +108,17 @@ namespace NeoSwagger.NSwag.CLI.Tests
             return Activator.CreateInstance(type, args: stream);
         }
 
-        private object CreateInstance(string client)
+        private async Task<object> CreateInstance(string client)
         {
-            return Activator.CreateInstance(Compile().Keys.Single(t => t.Name == client), args: new HttpClient());
+            var classes = await Compile();
+            return Activator.CreateInstance(classes.Keys.Single(t => t.Name == client), args: new HttpClient());
         }
 
-        private IReadOnlyDictionary<Type, IEnumerable<MethodInfo>> Compile()
+        private async Task<IReadOnlyDictionary<Type, IEnumerable<MethodInfo>>> Compile()
         {
-            assembly = new CreateAssemblyFromSwagger(new CSharpCompiler(), new MockCodeGenerator(), new NullConsoleHost())
-                .CreateAssembly(out var classes);
+            var (asm, classes) = await new CreateAssemblyFromSwagger(new CSharpCompiler(), new MockCodeGenerator(), new NullConsoleHost())
+                .CreateAssembly();
+            assembly = asm;
             return classes;
         }
     }

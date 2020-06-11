@@ -23,7 +23,8 @@ namespace NeoSwagger.NSwag.CLI
             {
                 ClientBaseClass = ClientBaseClass,
                 InjectHttpClient = true,
-                UseBaseUrl = false
+                UseBaseUrl = false,
+                ExceptionClass = "SwaggerException",
             };
             settings.CSharpGeneratorSettings.Namespace = ClientNamespace;
             return new CSharpClientGenerator(document, settings).GenerateFile();

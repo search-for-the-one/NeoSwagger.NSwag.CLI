@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using NeoSwagger.NSwag.CLI.Exceptions;
@@ -153,28 +154,31 @@ namespace NeoSwagger.NSwag.CLI.Shells
             if (debugEnabled || isError)
             {
                 if (isError)
-                    errorHandler.HandleError($"Error: {statusCode}", new WebException(responseText));
+                    errorHandler.HandleError($"Error: {GetErrorMessage(statusCode)}", new WebException(responseText));
                 else
-                    consoleHost.WriteLine($"Status code: {statusCode}");
+                    consoleHost.WriteLine($"Status code: {GetHttpStatusCodeString(statusCode)}");
             }
 
             if (debugEnabled && response.Headers.Any())
             {
                 consoleHost.WriteLine("Headers:");
-                foreach (var header in response.Headers)
-                    consoleHost.WriteLine($"  {header.Key} = {string.Join(", ", header.Value)}");
+                foreach (var (key, value) in response.Headers)
+                    consoleHost.WriteLine($"  {key} = {string.Join(", ", value)}");
             }
 
             if (response.Headers.TryGetValue("Content-Type", out var values))
             {
-                var contentType = values.FirstOrDefault();
-                if (!string.IsNullOrWhiteSpace(contentType))
+                if (debugEnabled || !isError)
                 {
-                    var c = contentType.Split(';', StringSplitOptions.RemoveEmptyEntries).First().Trim();
-                    if (!c.StartsWith("application/json"))
+                    var contentType = values.FirstOrDefault();
+                    if (!string.IsNullOrWhiteSpace(contentType))
                     {
-                        await SaveResponseToFile(c, response.Stream);
-                        return;
+                        var c = contentType.Split(';', StringSplitOptions.RemoveEmptyEntries).First().Trim();
+                        if (!c.StartsWith("application/json") && response.Stream.Length > 0)
+                        {
+                            await SaveResponseToFile(c, response.Stream);
+                            return;
+                        }
                     }
                 }
             }
@@ -184,11 +188,25 @@ namespace NeoSwagger.NSwag.CLI.Shells
                 consoleHost.WriteLine(Shorten(responseText));
         }
 
+        private static string GetErrorMessage(string statusCode)
+        {
+            return statusCode switch
+            {
+                "404" => $"{GetHttpStatusCodeString(statusCode)} (hint: incorrect number of parameters?)",
+                _ => GetHttpStatusCodeString(statusCode)
+            };
+        }
+
+        private static string GetHttpStatusCodeString(string statusCode)
+        {
+            return (Enum.TryParse(typeof(HttpStatusCode), statusCode, out var result) ? $"{statusCode} {result}" : statusCode).ToString();
+        }
+
         private static string Shorten(string text)
         {
             var s = text.Substring(0, Math.Min(PrintTextMaxChars, text.Length));
             if (s.Length != text.Length)
-                s = s + " ...";
+                s += " ...";
             return s;
         }
 
@@ -231,7 +249,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
         private static string GetString(Stream stream)
         {
-            using var reader = new StreamReader(stream);
+            using var reader = new StreamReader(stream, Encoding.UTF8, true, leaveOpen: true, bufferSize: -1);
             return reader.ReadToEnd();
         }
 
