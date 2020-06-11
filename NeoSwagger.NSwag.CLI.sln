@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeoSwagger.NSwag.CLI", "Neo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NeoSwagger.NSwag.CLI.Tests", "NeoSwagger.NSwag.CLI.Tests\NeoSwagger.NSwag.CLI.Tests.csproj", "{05579D7D-6D7F-42D3-9017-FA198EB9FCD2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CLI.App", "CLI.App\CLI.App.csproj", "{A7B34BB1-6B30-4864-BB3F-09C38ED1C39B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{05579D7D-6D7F-42D3-9017-FA198EB9FCD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{05579D7D-6D7F-42D3-9017-FA198EB9FCD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{05579D7D-6D7F-42D3-9017-FA198EB9FCD2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7B34BB1-6B30-4864-BB3F-09C38ED1C39B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7B34BB1-6B30-4864-BB3F-09C38ED1C39B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7B34BB1-6B30-4864-BB3F-09C38ED1C39B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7B34BB1-6B30-4864-BB3F-09C38ED1C39B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
