@@ -24,7 +24,11 @@ namespace NeoSwagger.NSwag.CLI.Compilers
         {
             var syntaxTree = CSharpSyntaxTree.ParseText(code);
             var references = GetTrustedReferences().Concat(ReferencedTypes.Select(GetReference));
-            var compilation = CSharpCompilation.Create($"{Guid.NewGuid():N}", syntaxTree.Yield(), references, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            var compileOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                .WithConcurrentBuild(true)
+                .WithOptimizationLevel(OptimizationLevel.Release)
+                .WithWarningLevel(0);
+            var compilation = CSharpCompilation.Create($"{Guid.NewGuid():N}", syntaxTree.Yield(), references, compileOptions);
             using var ms = new MemoryStream();
             var result = compilation.Emit(ms);
             if (!result.Success)

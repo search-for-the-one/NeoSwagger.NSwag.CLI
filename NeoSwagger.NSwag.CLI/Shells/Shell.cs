@@ -28,6 +28,8 @@ namespace NeoSwagger.NSwag.CLI.Shells
         private const string PrintVarsVerb = "vars";
         private const string VarVerb = "var";
 
+        private static readonly char[] Semicolon = {';'};
+        private static readonly char[] Slash = {'/'};
         private static readonly Regex TokenSplitter = new Regex("\\s");
         private static readonly string[] ExitVerbs = {"exit", "quit", "bye", "q"};
 
@@ -166,8 +168,8 @@ namespace NeoSwagger.NSwag.CLI.Shells
             if (debugEnabled && response.Headers.Any())
             {
                 consoleHost.WriteLine("Headers:");
-                foreach (var (key, value) in response.Headers)
-                    consoleHost.WriteLine($"  {key} = {string.Join(", ", value)}");
+                foreach (var kvp in response.Headers)
+                    consoleHost.WriteLine($"  {kvp.Key} = {string.Join(", ", kvp.Value)}");
             }
 
             if (response.Headers.TryGetValue("Content-Type", out var values))
@@ -177,7 +179,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
                     var contentType = values.FirstOrDefault();
                     if (!string.IsNullOrWhiteSpace(contentType))
                     {
-                        var c = contentType.Split(';', StringSplitOptions.RemoveEmptyEntries).First().Trim();
+                        var c = contentType.Split(Semicolon, StringSplitOptions.RemoveEmptyEntries).First().Trim();
                         if (!c.StartsWith("application/json") && response.Stream.Length > 0)
                         {
                             await SaveResponseToFile(c, response.Stream);
@@ -203,7 +205,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
         private static string GetHttpStatusCodeString(string statusCode)
         {
-            return Enum.TryParse(typeof(HttpStatusCode), statusCode, out var result) ? $"{statusCode} {result}" : statusCode;
+            return Enum.TryParse<HttpStatusCode>(statusCode, out var result) ? $"{statusCode} {result}" : statusCode;
         }
 
         private string Shorten(string text)
@@ -229,7 +231,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
         private async Task SaveResponseToFile(string contentType, Stream stream)
         {
             var filename = Path.Combine(downloadDir, $"{Guid.NewGuid():N}.{GetExtension()}");
-            await using (var fileStream = new FileStream(filename, FileMode.Create))
+            using (var fileStream = new FileStream(filename, FileMode.Create))
             {
                 await stream.CopyToAsync(fileStream);
             }
@@ -242,7 +244,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
             {
                 return Constants.MimeMapping.ReverseTypeMap.TryGetValue(contentType.Trim().ToLowerInvariant(), out var extensions)
                     ? extensions.First()
-                    : contentType.Split('/', StringSplitOptions.RemoveEmptyEntries).Skip(1).Single();
+                    : contentType.Split(Slash, StringSplitOptions.RemoveEmptyEntries).Skip(1).Single();
             }
         }
 

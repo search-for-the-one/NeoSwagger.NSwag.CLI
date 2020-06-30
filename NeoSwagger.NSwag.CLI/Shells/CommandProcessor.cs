@@ -63,7 +63,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
                 var response = await (dynamic) result;
                 using var disposable = response as IDisposable;
                 return disposable != null
-                    ? (Response) await GetResponse(response) 
+                    ? (Response) await GetResponse(response)
                     : throw new NotSupportedException($"Expecting method to have return type of 'IActionResult' but got '{response.GetType()}'");
             }
             catch (Exception ex)

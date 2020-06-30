@@ -10,6 +10,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
 {
     internal class ScriptedShell : Shell
     {
+        private readonly string[] newLine = {Environment.NewLine};
         private readonly TextReader reader;
 
         public ScriptedShell(IConsoleHost consoleHost, ICommandParser commandParser, IVariables variables, ICommandProcessor commandProcessor, TextReader reader)
@@ -22,7 +23,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
         {
             try
             {
-                var lines = (await reader.ReadToEndAsync()).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+                var lines = (await reader.ReadToEndAsync()).Split(newLine, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var line in lines.Select(l => l.Trim()))
                 {
                     await Handle(line);
