@@ -17,8 +17,6 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
     internal abstract class Shell : IShell
     {
-        private const int PrintTextMaxChars = 1200;
-
         private const string LastResponseVar = "LastResponse";
         private const string LastResponseUriVar = "LastResponseUri";
         private const string LastResponseStatusCodeVar = "LastResponseStatusCode";
@@ -72,7 +70,8 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
         private bool GetOrSet(string line)
         {
-            if (!GetOrSet(line, out var set)) return false;
+            if (!GetOrSet(line, out var set))
+                return false;
 
             try
             {
@@ -92,16 +91,20 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
         private bool PrintVars(string line)
         {
-            if (!string.Equals(PrintVarsVerb, line)) return false;
+            if (!string.Equals(PrintVarsVerb, line))
+                return false;
+            
             consoleHost.WriteLine("Vars:");
             foreach (var v in variables)
                 consoleHost.WriteLine($"  ${v.Key}");
+            
             return true;
         }
 
         private bool Help(string line, ICommandProcessor proc)
         {
-            if (!Help(line, out var service)) return false;
+            if (!Help(line, out var service))
+                return false;
 
             if (string.Equals(service, "shell", StringComparison.Ordinal))
             {
@@ -111,7 +114,8 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
             consoleHost.WriteLine(proc.GetHelp(service));
 
-            if (!string.IsNullOrEmpty(service)) return true;
+            if (!string.IsNullOrEmpty(service))
+                return true;
 
             consoleHost.WriteLine("'help shell' to print help for this shell");
             consoleHost.WriteLine();
@@ -199,12 +203,12 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
         private static string GetHttpStatusCodeString(string statusCode)
         {
-            return (Enum.TryParse(typeof(HttpStatusCode), statusCode, out var result) ? $"{statusCode} {result}" : statusCode).ToString();
+            return Enum.TryParse(typeof(HttpStatusCode), statusCode, out var result) ? $"{statusCode} {result}" : statusCode;
         }
 
-        private static string Shorten(string text)
+        private string Shorten(string text)
         {
-            var s = text.Substring(0, Math.Min(PrintTextMaxChars, text.Length));
+            var s = text.Substring(0, Math.Min(consoleHost.PrintTextMaxChars, text.Length));
             if (s.Length != text.Length)
                 s += " ...";
             return s;
@@ -257,8 +261,8 @@ namespace NeoSwagger.NSwag.CLI.Shells
         {
             consoleHost.WriteLine("Shell help:");
             consoleHost.WriteLine("  get/set debug on/off       - Turn on/off debug mode");
-            consoleHost.WriteLine("  get/set downloaddir <path> - Set download dir");
-            consoleHost.WriteLine("  get/set var <name>=<value> - Set variable");
+            consoleHost.WriteLine("  get/set downloaddir <path> - Get or set download dir");
+            consoleHost.WriteLine("  get/set var <name>=<value> - Get or set variable");
             consoleHost.WriteLine("  set var <name>             - Undefine variable");
             consoleHost.WriteLine("  vars                       - List all defined variables");
             consoleHost.WriteLine("  help                       - Help");
@@ -303,9 +307,13 @@ namespace NeoSwagger.NSwag.CLI.Shells
                 () => !parameters.Any(),
                 () =>
                 {
-                    if (parameters.Count != 1) return false;
+                    if (parameters.Count != 1)
+                        return false;
+                    
                     var p1 = parameters.Single();
-                    if (!string.IsNullOrEmpty(p1.Name)) return false;
+                    if (!string.IsNullOrEmpty(p1.Name))
+                        return false;
+                    
                     if (string.Equals(p1.Value, "on", StringComparison.Ordinal))
                     {
                         debugEnabled = true;
@@ -329,9 +337,13 @@ namespace NeoSwagger.NSwag.CLI.Shells
                 () => !parameters.Any(),
                 () =>
                 {
-                    if (parameters.Count != 1) return false;
+                    if (parameters.Count != 1)
+                        return false;
+                    
                     var p = parameters.Single();
-                    if (!string.IsNullOrEmpty(p.Name)) return false;
+                    if (!string.IsNullOrEmpty(p.Name))
+                        return false;
+                    
                     downloadDir = p.Value;
                     return true;
                 },
@@ -340,17 +352,22 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
         private bool Var(bool set, string verb, Parameters parameters)
         {
-            if (parameters.Count != 1) return false;
+            if (parameters.Count != 1)
+                return false;
+            
             var p = parameters.Single();
 
             return HandleGetOrSet(set, VarVerb, verb,
                 () =>
                 {
-                    if (!string.IsNullOrEmpty(p.Name)) return false;
+                    if (!string.IsNullOrEmpty(p.Name))
+                        return false;
+                    
                     if (!variables.TryGetValue(p.Value, out var v))
                         PrintVarUndefined(p.Value);
                     else
                         consoleHost.WriteLine($"var: ${p.Value} = {Shorten(v)}");
+                    
                     return true;
                 },
                 () =>
@@ -374,10 +391,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
                     return true;
                 });
 
-            void PrintVarUndefined(string name)
-            {
-                errorHandler.HandleError($"${name} is undefined");
-            }
+            void PrintVarUndefined(string name) => errorHandler.HandleError($"${name} is undefined");
         }
 
         private static List<string> SplitTokens(string line)

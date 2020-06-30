@@ -16,7 +16,7 @@ namespace NeoSwagger.NSwag.CLI
 {
     public class CommandLineInterface
     {
-        public IConsoleHost ConsoleHost { get; set; } = new SystemConsoleHost();
+        private IConsoleHost ConsoleHost { get; set; } = new SystemConsoleHost();
         
         private void PrintException(Exception ex)
         {
@@ -74,6 +74,8 @@ namespace NeoSwagger.NSwag.CLI
 
         private async Task Run(Options options)
         {
+            ConsoleHost = new SystemConsoleHost {PrintTextMaxChars = options.PrintMaxTextLength};
+            
             var file = !string.IsNullOrEmpty(options.ScriptFile)
                 ? LoadScriptFile(options.ScriptFile)
                 : null;

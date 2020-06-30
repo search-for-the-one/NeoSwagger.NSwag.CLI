@@ -2,6 +2,8 @@
 {
     public class NullConsoleHost : IConsoleHost
     {
+        public int PrintTextMaxChars { get; } = int.MaxValue;
+
         public void Write(string text)
         {
         }
