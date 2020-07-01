@@ -225,7 +225,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
         private async Task<byte[]> Load(string endpoint)
         {
-            if (Uri.TryCreate(endpoint, UriKind.RelativeOrAbsolute, out var uri))
+            if (Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
                 return await webClient.DownloadDataTaskAsync(uri);
 
             return File.ReadAllBytes(endpoint);
@@ -233,7 +233,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
         private async Task<string> LoadString(string endpoint)
         {
-            if (Uri.TryCreate(endpoint, UriKind.RelativeOrAbsolute, out var uri))
+            if (Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
                 return await webClient.DownloadStringTaskAsync(uri);
 
             return File.ReadAllText(endpoint);
