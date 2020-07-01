@@ -74,15 +74,18 @@ namespace NeoSwagger.NSwag.CLI
 
         private async Task Run(Options options)
         {
-            ConsoleHost = new SystemConsoleHost {PrintTextMaxChars = options.PrintMaxTextLength};
-            
             var file = !string.IsNullOrEmpty(options.ScriptFile)
                 ? LoadScriptFile(options.ScriptFile)
                 : null;
 
+            ConsoleHost = new SystemConsoleHost {PrintTextMaxChars = file == null ? options.PrintMaxTextLength : int.MaxValue};
+            
+            var verbose = file == null || options.VerboseMode;
+
             var baseUrl = new Uri(options.SwaggerEndpoint).GetLeftPart(UriPartial.Authority);
 
-            ConsoleHost.Write($"Loading from swagger endpoint '{options.SwaggerEndpoint}'...");
+            if (verbose)
+                ConsoleHost.Write($"Loading from swagger endpoint '{options.SwaggerEndpoint}'...");
 
             var commandParser = new CommandParser();
             var variables = new InMemoryVariables();
@@ -92,18 +95,25 @@ namespace NeoSwagger.NSwag.CLI
             var (_, classes) = await new CreateAssemblyFromSwagger(new CSharpCompiler(), new NSwagCodeGenerator(options.SwaggerEndpoint), ConsoleHost)
                 .CreateAssembly();
 
-            ConsoleHost.WriteLine($" Done ({watch.Elapsed.TotalMilliseconds:N0}ms).");
+            if (verbose)
+                ConsoleHost.WriteLine($" Done ({watch.Elapsed.TotalMilliseconds:N0}ms).");
+            
             ConsoleHost.WriteLine();
 
             var commandProcessor = new CommandProcessor(commandParser, variables, classes, client);
             if (file != null)
             {
-                ConsoleHost.Write("Running script... ");
+                if (verbose)
+                    ConsoleHost.Write("Running script... ");
+                
                 var consoleHost = options.PrintScriptResponses
                     ? ConsoleHost
                     : new NullConsoleHost();
                 await new ScriptedShell(consoleHost, commandParser, variables, commandProcessor, file).Run();
-                ConsoleHost.WriteLine(" Done.");
+                
+                if (verbose)
+                    ConsoleHost.WriteLine(" Done.");
+                
                 ConsoleHost.WriteLine();
             }
 
