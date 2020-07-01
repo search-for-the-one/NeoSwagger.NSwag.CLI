@@ -223,10 +223,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
             variables[LastResponseStatusCodeVar] = string.Empty;
         }
 
-        private static bool IsError(Response response)
-        {
-            return response.StatusCode != 200 && response.StatusCode != 206;
-        }
+        private static bool IsError(Response response) => response.StatusCode >= 400;
 
         private async Task SaveResponseToFile(string contentType, Stream stream)
         {

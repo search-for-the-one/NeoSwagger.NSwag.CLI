@@ -25,6 +25,8 @@ namespace NeoSwagger.NSwag.CLI.Shells
         private readonly ICommandParser parser;
         private readonly IReadOnlyDictionary<string, Type> services;
         private readonly IVariables variables;
+        
+        private readonly WebClient webClient = new WebClient();
 
         public CommandProcessor(ICommandParser parser, IVariables variables, ISwaggerClasses classes, HttpClient client)
         {
@@ -221,18 +223,20 @@ namespace NeoSwagger.NSwag.CLI.Shells
             return HttpUtility.UrlDecode(Path.GetFileName(new Uri(link).AbsolutePath));
         }
 
-        private static async Task<byte[]> Load(string endpoint)
+        private async Task<byte[]> Load(string endpoint)
         {
-            var uri = new Uri(endpoint);
-            using var client = new WebClient();
-            return await client.DownloadDataTaskAsync(uri);
+            if (Uri.TryCreate(endpoint, UriKind.RelativeOrAbsolute, out var uri))
+                return await webClient.DownloadDataTaskAsync(uri);
+
+            return File.ReadAllBytes(endpoint);
         }
 
-        private static async Task<string> LoadString(string endpoint)
+        private async Task<string> LoadString(string endpoint)
         {
-            var uri = new Uri(endpoint);
-            using var client = new WebClient();
-            return await client.DownloadStringTaskAsync(uri);
+            if (Uri.TryCreate(endpoint, UriKind.RelativeOrAbsolute, out var uri))
+                return await webClient.DownloadStringTaskAsync(uri);
+
+            return File.ReadAllText(endpoint);
         }
 
         private static string GetServiceName(MemberInfo type)
