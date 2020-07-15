@@ -81,7 +81,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
                 if (!Debug(set, verb, parameters) &&
                     !DownloadDir(set, verb, parameters) &&
                     !Var(set, verb, parameters))
-                    errorHandler.HandleError("Unknown command");
+                    errorHandler.HandleError("Error: Unknown command");
                 consoleHost.WriteLine();
                 return true;
             }
@@ -139,6 +139,10 @@ namespace NeoSwagger.NSwag.CLI.Shells
             {
                 errorHandler.HandleError($"Invalid operation: {e.Message}", e);
             }
+            catch (ShellException e)
+            {
+                errorHandler.HandleError(e.Message, e);
+            }
             catch (Exception e)
             {
                 errorHandler.HandleError($"Error: {e.Message}", e);
@@ -151,18 +155,20 @@ namespace NeoSwagger.NSwag.CLI.Shells
         {
             ClearVars();
 
+            if (response == null)
+                return;
+
             var statusCode = response.StatusCode.ToString(CultureInfo.InvariantCulture);
             variables[LastResponseStatusCodeVar] = statusCode;
 
-            var responseText = GetString(response.Stream);
+            var responseText = GetString(response);
 
             var isError = IsError(response);
-            if (debugEnabled || isError)
+            if (debugEnabled)
             {
-                if (isError)
-                    errorHandler.HandleError($"Error: {GetErrorMessage(statusCode)}", new WebException(responseText));
-                else
-                    consoleHost.WriteLine($"Status code: {GetHttpStatusCodeString(statusCode)}");
+                consoleHost.WriteLine(isError
+                    ? $"Error: {GetErrorMessage(statusCode)}"
+                    : $"Status code: {GetHttpStatusCodeString(statusCode)}");
             }
 
             if (debugEnabled && response.Headers.Any())
@@ -172,26 +178,23 @@ namespace NeoSwagger.NSwag.CLI.Shells
                     consoleHost.WriteLine($"  {kvp.Key} = {string.Join(", ", kvp.Value)}");
             }
 
-            if (response.Headers.TryGetValue("Content-Type", out var values))
+            if (debugEnabled || !isError)
             {
-                if (debugEnabled || !isError)
-                {
-                    var contentType = values.FirstOrDefault();
-                    if (!string.IsNullOrWhiteSpace(contentType))
-                    {
-                        var c = contentType.Split(Semicolon, StringSplitOptions.RemoveEmptyEntries).First().Trim();
-                        if (!c.StartsWith("application/json") && response.Stream.Length > 0)
-                        {
-                            await SaveResponseToFile(c, response.Stream);
-                            return;
-                        }
-                    }
-                }
+                if (await SaveResponseToFile(response))
+                    return;
             }
 
             variables[LastResponseVar] = responseText;
             if (!string.IsNullOrWhiteSpace(responseText))
                 consoleHost.WriteLine(Shorten(responseText));
+            
+            if (isError)
+                errorHandler.HandleError($"Error: {GetErrorMessage(statusCode)}");
+        }
+
+        private static bool IsTextBasedMimeType(Response response)
+        {
+            return IsMimeType(response, "application/json", "application/ld+json", "text");
         }
 
         private static string GetErrorMessage(string statusCode)
@@ -225,8 +228,15 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
         private static bool IsError(Response response) => response.StatusCode >= 400;
 
-        private async Task SaveResponseToFile(string contentType, Stream stream)
+        private async Task<bool> SaveResponseToFile(Response response)
         {
+            if (!TryGetMimeType(response, out var mimeType))
+                return false;
+
+            var stream = response.Stream;
+            if (stream.Position == stream.Length)
+                return false;
+            
             var filename = Path.Combine(downloadDir, $"{Guid.NewGuid():N}.{GetExtension()}");
             using (var fileStream = new FileStream(filename, FileMode.Create))
             {
@@ -237,11 +247,13 @@ namespace NeoSwagger.NSwag.CLI.Shells
             consoleHost.WriteLine($"Response saved as '{uri}'");
             variables[LastResponseUriVar] = uri;
 
+            return true;
+
             string GetExtension()
             {
-                return Constants.MimeMapping.ReverseTypeMap.TryGetValue(contentType.Trim().ToLowerInvariant(), out var extensions)
+                return Constants.MimeMapping.ReverseTypeMap.TryGetValue(mimeType.Trim().ToLowerInvariant(), out var extensions)
                     ? extensions.First()
-                    : contentType.Split(Slash, StringSplitOptions.RemoveEmptyEntries).Skip(1).Single();
+                    : mimeType.Split(Slash, StringSplitOptions.RemoveEmptyEntries).Skip(1).Single();
             }
         }
 
@@ -250,10 +262,34 @@ namespace NeoSwagger.NSwag.CLI.Shells
             return new Uri(filename.Replace('%', '?')).AbsoluteUri.Replace("%3F", "%25");
         }
 
-        private static string GetString(Stream stream)
+        private static bool TryGetMimeType(Response response, out string mimeType)
         {
+            mimeType = null;
+            if (!response.Headers.TryGetValue("Content-Type", out var values)) 
+                return false;
+            
+            var contentType = values.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(contentType)) 
+                return false;
+            
+            mimeType = contentType.Split(Semicolon, StringSplitOptions.RemoveEmptyEntries).First().Trim();
+            return true;
+        }
+
+        private static bool IsMimeType(Response response, params string[] mimeTypes)
+        {
+            return TryGetMimeType(response, out var mimeType) && mimeTypes.Any(m => mimeType.StartsWith(m));
+        }
+
+        private static string GetString(Response response)
+        {
+            if (!IsTextBasedMimeType(response))
+                return string.Empty;
+            
+            var stream = response.Stream;
             using var reader = new StreamReader(stream, Encoding.UTF8, true, leaveOpen: true, bufferSize: -1);
             return reader.ReadToEnd();
+
         }
 
         private void PrintShellHelp()
@@ -390,7 +426,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
                     return true;
                 });
 
-            void PrintVarUndefined(string name) => errorHandler.HandleError($"${name} is undefined");
+            void PrintVarUndefined(string name) => errorHandler.HandleError($"Error: ${name} is undefined");
         }
 
         private static List<string> SplitTokens(string line)

@@ -40,7 +40,20 @@ namespace NeoSwagger.NSwag.CLI
             }
         }
 
-        public void Run(IEnumerable<string> args)
+        public int Run(IEnumerable<string> args)
+        {
+            try
+            {
+                RunInternal(args);
+                return 0;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+
+        private void RunInternal(IEnumerable<string> args)
         {
             Parser.Default.ParseArguments<Options>(args)
                 .WithParsed(options =>
@@ -61,6 +74,7 @@ namespace NeoSwagger.NSwag.CLI
                     {
                         ConsoleHost.WriteLine();
                         PrintException(ex);
+                        throw;
                     }
                 })
                 .WithNotParsed(HandleParseError);

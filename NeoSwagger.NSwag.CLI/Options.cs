@@ -16,7 +16,7 @@ namespace NeoSwagger.NSwag.CLI
         [Option('v', "verbose", HelpText = "Turn on verbose mode when running script.")]
         public bool VerboseMode { get; set; }
 
-        [Option('p', "print", Default = true, HelpText = "Print responses when running script.")]
+        [Option('p', "print", Default = false, HelpText = "Print responses when running script.")]
         public bool PrintScriptResponses { get; set; }
 
         [Option('l', "printlength", Default = 1200, HelpText = "Set maximum response text length to print in interactive mode (-1 for infinite).")]
