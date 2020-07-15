@@ -7,7 +7,7 @@ namespace NeoSwagger.NSwag.CLI.Shells.ErrorHandlers
     {
         public void HandleError(string message, Exception innerException)
         {
-            throw new ShellException(message, innerException);
+            throw new ShellException(message);
         }
     }
 }

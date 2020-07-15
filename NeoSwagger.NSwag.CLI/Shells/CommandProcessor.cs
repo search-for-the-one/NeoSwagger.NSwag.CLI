@@ -63,6 +63,8 @@ namespace NeoSwagger.NSwag.CLI.Shells
             try
             {
                 var response = await (dynamic) result;
+                if (response == null)
+                    return null;
                 using var disposable = response as IDisposable;
                 return disposable != null
                     ? (Response) await GetResponse(response)
