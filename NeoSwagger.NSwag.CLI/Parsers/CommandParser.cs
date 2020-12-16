@@ -9,14 +9,14 @@ namespace NeoSwagger.NSwag.CLI.Parsers
     {
         private const RegexOptions RegexFlags = RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline;
 
-        private static readonly Regex IdentifierRegex = new Regex(@"^(?:((?!\d)\w+(?:(?!\d)\w+)*))?((?!\d)\w+)", RegexFlags);
-        private static readonly Regex VarIdentifierRegex = new Regex(@"^\$(?:((?!\d)\w+(?:(?!\d)\w+)*))?((?!\d)\w+)", RegexFlags);
-        private static readonly Regex SingleQuotedStringRegex = new Regex(@"^\'(?<=')(?:[^']|'')*(?=')\'", RegexFlags);
-        private static readonly Regex DoubleQuotedStringRegex = new Regex(@"^\""(?<="")(?:[^""]|"""")*(?="")\""", RegexFlags);
-        private static readonly Regex ParamAssignOperatorRegex = new Regex(@"^\s*\=\s*", RegexFlags);
-        private static readonly Regex TrimStartRegex = new Regex(@"^[\s=]+", RegexFlags);
-        private static readonly Regex TrimEndRegex = new Regex(@"[\s=]+$", RegexFlags);
-        private static readonly Regex PlainStringRegex = new Regex(@"^[^\s]+", RegexFlags);
+        private static readonly Regex IdentifierRegex = new(@"^(?:((?!\d)\w+(?:(?!\d)\w+)*))?((?!\d)\w+)", RegexFlags);
+        private static readonly Regex VarIdentifierRegex = new(@"^\$(?:((?!\d)\w+(?:(?!\d)\w+)*))?((?!\d)\w+)", RegexFlags);
+        private static readonly Regex SingleQuotedStringRegex = new(@"^\'(?<=')(?:[^']|'')*(?=')\'", RegexFlags);
+        private static readonly Regex DoubleQuotedStringRegex = new(@"^\""(?<="")(?:[^""]|"""")*(?="")\""", RegexFlags);
+        private static readonly Regex ParamAssignOperatorRegex = new(@"^\s*\=\s*", RegexFlags);
+        private static readonly Regex TrimStartRegex = new(@"^[\s=]+", RegexFlags);
+        private static readonly Regex TrimEndRegex = new(@"[\s=]+$", RegexFlags);
+        private static readonly Regex PlainStringRegex = new(@"^[^\s]+", RegexFlags);
 
         public void Parse(string input, out string service, out string verb, out IReadOnlyList<(ParamValueType ParamValueType, string Name, string Value)> parameters)
         {

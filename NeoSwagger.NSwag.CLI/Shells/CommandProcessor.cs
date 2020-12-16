@@ -26,7 +26,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
         private readonly IReadOnlyDictionary<string, Type> services;
         private readonly IVariables variables;
         
-        private readonly WebClient webClient = new WebClient();
+        private readonly WebClient webClient = new();
 
         public CommandProcessor(ICommandParser parser, IVariables variables, ISwaggerClasses classes, HttpClient client)
         {

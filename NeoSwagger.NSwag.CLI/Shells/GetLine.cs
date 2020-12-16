@@ -1191,7 +1191,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
             public static Handler Control(char c, KeyHandler h, bool resetCompletion = true)
             {
-                return new Handler((char) (c - 'A' + 1), h, resetCompletion);
+                return new((char) (c - 'A' + 1), h, resetCompletion);
             }
 
             public static Handler Alt(char c, ConsoleKey k, KeyHandler h)

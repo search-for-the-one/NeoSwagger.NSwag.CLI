@@ -5,7 +5,7 @@ namespace NeoSwagger.NSwag.CLI.Extensions
 {
     public static class TypeExtensions
     {
-        private static readonly Dictionary<Type, string> Aliases = new Dictionary<Type, string>
+        private static readonly Dictionary<Type, string> Aliases = new()
         {
             {typeof(byte), "byte"},
             {typeof(sbyte), "sbyte"},
