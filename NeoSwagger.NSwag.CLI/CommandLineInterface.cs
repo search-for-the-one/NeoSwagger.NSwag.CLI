@@ -94,11 +94,11 @@ namespace NeoSwagger.NSwag.CLI
                 ? LoadScriptFile(options.ScriptFile)
                 : null;
 
-            ConsoleHost = new SystemConsoleHost {PrintTextMaxChars = file == null ? options.PrintMaxTextLength : int.MaxValue};
+            ConsoleHost = CreateSystemConsoleHost(options, file);
             
             var verbose = file == null || options.VerboseMode;
 
-            var baseUrl = new Uri(options.SwaggerEndpoint).GetLeftPart(UriPartial.Authority);
+            var baseUrl = GetBaseUrl(options);
 
             if (verbose)
                 ConsoleHost.Write($"Loading from swagger endpoint '{options.SwaggerEndpoint}'...");
@@ -107,11 +107,9 @@ namespace NeoSwagger.NSwag.CLI
             var variables = new InMemoryVariables();
 
             var watch = Stopwatch.StartNew();
-            using var client = new HttpClient {BaseAddress = new Uri(baseUrl)};
-            client.DefaultRequestHeaders.Add(UserAgentHeader, userAgent);
-            
-            var (_, classes) = await new CreateAssemblyFromSwagger(new CSharpCompiler(), new NSwagCodeGenerator(options.SwaggerEndpoint), ConsoleHost)
-                .CreateAssembly();
+            using var client = CreateHttpClient(baseUrl, userAgent);
+
+            var classes = await CreateSwaggerClasses(options);
 
             if (verbose)
                 ConsoleHost.WriteLine($" Done ({watch.Elapsed.TotalMilliseconds:N0}ms).");
@@ -137,6 +135,32 @@ namespace NeoSwagger.NSwag.CLI
 
             if (!options.RunInteractiveShell)
                 await new InteractiveShell(ConsoleHost, commandParser, variables, commandProcessor).Run();
+        }
+
+        private async Task<ISwaggerClasses> CreateSwaggerClasses(Options options)
+        {
+            var (_, classes) = await new CreateAssemblyFromSwagger(new CSharpCompiler(), new NSwagCodeGenerator(options.SwaggerEndpoint), ConsoleHost)
+                .CreateAssembly();
+
+            return classes;
+        }
+
+        private static string GetBaseUrl(Options options)
+        {
+            return new Uri(options.SwaggerEndpoint).GetLeftPart(UriPartial.Authority);
+        }
+
+        private static SystemConsoleHost CreateSystemConsoleHost(Options options, StreamReader file)
+        {
+            return new() {PrintTextMaxChars = file == null ? options.PrintMaxTextLength : int.MaxValue};
+        }
+
+        private static HttpClient CreateHttpClient(string baseUrl, string userAgent)
+        {
+            var client = new HttpClient {BaseAddress = new Uri(baseUrl)};
+            if (!string.IsNullOrWhiteSpace(userAgent))
+                client.DefaultRequestHeaders.Add(UserAgentHeader, userAgent);
+            return client;
         }
 
         private static StreamReader LoadScriptFile(string scriptFile)
