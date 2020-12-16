@@ -16,6 +16,8 @@ namespace NeoSwagger.NSwag.CLI
 {
     public class CommandLineInterface
     {
+        private const string UserAgentHeader = "User-Agent";
+        
         private IConsoleHost ConsoleHost { get; set; } = new SystemConsoleHost();
         
         private void PrintException(Exception ex)
@@ -40,11 +42,11 @@ namespace NeoSwagger.NSwag.CLI
             }
         }
 
-        public int Run(IEnumerable<string> args)
+        public int Run(IEnumerable<string> args, string userAgent = "")
         {
             try
             {
-                RunInternal(args);
+                RunInternal(args, userAgent);
                 return 0;
             }
             catch
@@ -53,7 +55,7 @@ namespace NeoSwagger.NSwag.CLI
             }
         }
 
-        private void RunInternal(IEnumerable<string> args)
+        private void RunInternal(IEnumerable<string> args, string userAgent)
         {
             Parser.Default.ParseArguments<Options>(args)
                 .WithParsed(options =>
@@ -62,7 +64,7 @@ namespace NeoSwagger.NSwag.CLI
                     {
                         try
                         {
-                            Run(options).Wait();
+                            Run(options, userAgent).Wait();
                         }
                         catch (AggregateException ex)
                         {
@@ -86,7 +88,7 @@ namespace NeoSwagger.NSwag.CLI
                 ConsoleHost.WriteLine(err.ToString());
         }
 
-        private async Task Run(Options options)
+        private async Task Run(Options options, string userAgent)
         {
             var file = !string.IsNullOrEmpty(options.ScriptFile)
                 ? LoadScriptFile(options.ScriptFile)
@@ -106,6 +108,8 @@ namespace NeoSwagger.NSwag.CLI
 
             var watch = Stopwatch.StartNew();
             using var client = new HttpClient {BaseAddress = new Uri(baseUrl)};
+            client.DefaultRequestHeaders.Add(UserAgentHeader, userAgent);
+            
             var (_, classes) = await new CreateAssemblyFromSwagger(new CSharpCompiler(), new NSwagCodeGenerator(options.SwaggerEndpoint), ConsoleHost)
                 .CreateAssembly();
 

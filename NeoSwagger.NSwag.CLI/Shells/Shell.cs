@@ -30,7 +30,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
 
         private static readonly char[] Semicolon = {';'};
         private static readonly char[] Slash = {'/'};
-        private static readonly Regex TokenSplitter = new Regex("\\s");
+        private static readonly Regex TokenSplitter = new("\\s");
         private static readonly string[] ExitVerbs = {"exit", "quit", "bye", "q"};
 
         private readonly ICommandParser commandParser;

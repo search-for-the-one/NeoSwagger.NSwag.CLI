@@ -4,7 +4,7 @@ namespace NeoSwagger.NSwag.CLI.Shells.ConsoleHosts
 {
     public class SystemConsoleHost : IConsoleHost
     {
-        private readonly LineEditor lineEditor = new LineEditor(string.Empty);
+        private readonly LineEditor lineEditor = new(string.Empty);
         private int printTextMaxChars = 1200;
 
         public int PrintTextMaxChars
