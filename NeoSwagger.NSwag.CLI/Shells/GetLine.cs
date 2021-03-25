@@ -940,7 +940,7 @@ namespace NeoSwagger.NSwag.CLI.Shells
             a.Cancel = true;
 
             // Interrupt the editor
-            editThread.Abort();
+            editThread.Interrupt();
         }
 
         //
@@ -1113,10 +1113,9 @@ namespace NeoSwagger.NSwag.CLI.Shells
                 {
                     EditLoop();
                 }
-                catch (ThreadAbortException)
+                catch (ThreadInterruptedException)
                 {
                     searching = 0;
-                    Thread.ResetAbort();
                     Console.WriteLine();
                     SetPrompt(prompt);
                     SetText("");
