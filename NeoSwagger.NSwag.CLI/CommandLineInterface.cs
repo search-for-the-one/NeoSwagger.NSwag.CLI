@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using CommandLine;
@@ -109,7 +110,7 @@ namespace NeoSwagger.NSwag.CLI
             var watch = Stopwatch.StartNew();
             using var client = CreateHttpClient(baseUrl, userAgent);
 
-            var classes = await CreateSwaggerClasses(options);
+            var classes = await CreateSwaggerClasses(client, options);
 
             if (verbose)
                 ConsoleHost.WriteLine($" Done ({watch.Elapsed.TotalMilliseconds:N0}ms).");
@@ -137,9 +138,10 @@ namespace NeoSwagger.NSwag.CLI
                 await new InteractiveShell(ConsoleHost, commandParser, variables, commandProcessor).Run();
         }
 
-        private async Task<ISwaggerClasses> CreateSwaggerClasses(Options options)
+        private async Task<ISwaggerClasses> CreateSwaggerClasses(HttpClient httpClient, Options options)
         {
-            var (_, classes) = await new CreateAssemblyFromSwagger(new CSharpCompiler(), new NSwagCodeGenerator(options.SwaggerEndpoint), ConsoleHost)
+            var (_, classes) = await new CreateAssemblyFromSwagger(
+                    new CSharpCompiler(), new NSwagCodeGenerator(httpClient, options.SwaggerEndpoint), ConsoleHost)
                 .CreateAssembly();
 
             return classes;
@@ -160,6 +162,7 @@ namespace NeoSwagger.NSwag.CLI
             var client = new HttpClient {BaseAddress = new Uri(baseUrl)};
             if (!string.IsNullOrWhiteSpace(userAgent))
                 client.DefaultRequestHeaders.Add(UserAgentHeader, userAgent);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
             return client;
         }
 
